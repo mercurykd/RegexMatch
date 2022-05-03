@@ -17,7 +17,7 @@ contexts:
   main:
     # Strings begin and end with quotes, and use backslashes as an escape
     # character
-    - match: ^(.)(.+)?(\1)([a-z]+)?
+    - match: ^(.)(.+)?(\1)(.+)?
       captures: 
         1: comment
         2: string

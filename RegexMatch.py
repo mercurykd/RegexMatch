@@ -43,18 +43,20 @@ class RegexMatchCommand(sublime_plugin.TextCommand):
                 regex = r.group(2)
                 flags = r.group(3)
                 fl = 0
-                if flags:
-                    for i in flags:
-                        if i == 'i':
-                            fl = fl | re.I
-                        if i == 's':
-                            fl = fl | re.S
-                        if i == 'u':
-                            fl = fl | re.U
-                        if i == 'm':
-                            fl = fl | re.M
-                            multiline = True
                 try:
+                    if flags:
+                        for i in flags:
+                            if i == 'i':
+                                fl = fl | re.I
+                            elif i == 's':
+                                fl = fl | re.S
+                            elif i == 'u':
+                                fl = fl | re.U
+                            elif i == 'm':
+                                fl = fl | re.M
+                                multiline = True
+                            else:
+                                raise re.error('not supported flag "' + i + '"', pos = r.group(0).rfind(i) - 1)
                     rc = re.compile(regex, fl)
                 except Exception as e:
                     e.pos += 1
