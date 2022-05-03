@@ -1,0 +1,3 @@
+[
+    { "keys": ["alt+p"], "command": "start_regex_match"},
+]
