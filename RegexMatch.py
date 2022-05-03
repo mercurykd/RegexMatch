@@ -72,7 +72,7 @@ class RegexMatchCommand(sublime_plugin.TextCommand):
                     'error_reg',
                     [self.view.full_line(0)],
                     scope='region.redish',
-                    annotations=['error regular expression']
+                    annotations=['regular expression error']
                 )
 
             # build string's
