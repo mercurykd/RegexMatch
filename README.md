@@ -1,4 +1,4 @@
-Test regular expressions in sublime text like [https://regex101.com/](https://regex101.com/)
+Testing regular expressions in sublime text like [https://regex101.com/](https://regex101.com/)
 
 ![](https://i.imgur.com/C5vUlPm.gif)
 ---
