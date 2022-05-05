@@ -11,7 +11,7 @@
 # "region.pinkish"
 file_extensions:
   - regex
-first_line_match: ^(/|~|@|;|%|`|#)
+first_line_match: ^(/|~|@|;|%|`)
 scope: source.regex
 contexts:
   main:
