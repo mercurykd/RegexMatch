@@ -15,13 +15,13 @@ class StartRegexMatchCommand(sublime_plugin.TextCommand):
 
 class RegexMatchCommand(sublime_plugin.TextCommand):
     def run(self, edit):
-        try:
-            # clean regions
-            self.view.erase_regions('error_reg')
-            self.view.erase_regions('green')
-            self.view.erase_regions('match')
-            self.view.erase_regions('groups')
-            self.view.erase_regions('annotations')
+        # clean regions
+        self.view.erase_regions('reg_match:error_reg')
+        self.view.erase_regions('reg_match:green')
+        self.view.erase_regions('reg_match:match')
+        self.view.erase_regions('reg_match:groups')
+        self.view.erase_regions('reg_match:annotations')
+        if self.view.syntax() and self.view.syntax().scope == 'source.regex':
             s = []
             multiline = False
             rc = False
@@ -61,7 +61,7 @@ class RegexMatchCommand(sublime_plugin.TextCommand):
                 except Exception as e:
                     e.pos += 1
                     self.view.add_regions(
-                        'error_reg',
+                        'reg_match:error_reg',
                         [sublime.Region(e.pos, e.pos + 1)],
                         scope='region.redish',
                         icon='circle',
@@ -69,7 +69,7 @@ class RegexMatchCommand(sublime_plugin.TextCommand):
                     )
             else:
                 self.view.add_regions(
-                    'error_reg',
+                    'reg_match:error_reg',
                     [self.view.full_line(0)],
                     scope='region.redish',
                     annotations=['regular expression error']
@@ -114,7 +114,7 @@ class RegexMatchCommand(sublime_plugin.TextCommand):
 
                 if ok_r:
                     self.view.add_regions(
-                        'green',
+                        'reg_match:green',
                         ok_r,
                         scope='region.greenish',
                         icon='dot',
@@ -122,51 +122,39 @@ class RegexMatchCommand(sublime_plugin.TextCommand):
                     )
                 else:
                     self.view.add_regions(
-                        'error_reg',
+                        'reg_match:error_reg',
                         [sublime.Region(self.view.size(), self.view.size())],
                         annotations=['no matches'],
                         annotation_color='gray'
                     )
                 if ok_a:
                     self.view.add_regions(
-                        'annotations',
+                        'reg_match:annotations',
                         ok_a['region'],
                         annotations=ok_a['annotation'],
                         annotation_color='green'
                     )
                 if ok_m:
                     self.view.add_regions(
-                        'match',
+                        'reg_match:match',
                         ok_m,
                         scope='region.orangish',
                         flags=sublime.HIDE_ON_MINIMAP|sublime.DRAW_NO_FILL,
                     )
                 if ok_g:
                     self.view.add_regions(
-                        'groups',
+                        'reg_match:groups',
                         ok_g,
                         scope='region.bluish',
                         flags=sublime.HIDE_ON_MINIMAP,
                     )
-        except Exception as e:
-            self.view.add_regions(
-                'error_reg',
-                [sublime.Region(self.view.size(), self.view.size())],
-                scope='region.redish',
-                annotations=['plugin error, see console']
-            )
-            raise e
 
 class RegexMatchViewEventListener(sublime_plugin.ViewEventListener):
     def on_modified_async(self):
-        if self.view.syntax().scope == 'source.regex':
-            self.view.run_command('regex_match')
+        self.view.run_command('regex_match')
     def on_load_async(self):
-        if self.view.syntax().scope == 'source.regex':
-            self.view.run_command('regex_match')
+        self.view.run_command('regex_match')
     def on_reload_async(self):
-        if self.view.syntax().scope == 'source.regex':
-            self.view.run_command('regex_match')
+        self.view.run_command('regex_match')
     def on_activated_async(self):
-        if self.view.syntax().scope == 'source.regex':
-            self.view.run_command('regex_match')
+        self.view.run_command('regex_match')
