@@ -4,6 +4,7 @@ import re
 
 class StartRegexMatchCommand(sublime_plugin.TextCommand):
     def run(self, edit):
+        r = self.view.substr(self.view.sel()[0])
         view = self.view.window().new_file()
         view.set_name('Regex Match')
         view.assign_syntax('scope:source.regex')
@@ -11,6 +12,8 @@ class StartRegexMatchCommand(sublime_plugin.TextCommand):
         sel = view.sel()
         sel.clear()
         sel.add(sublime.Region(1, 1))
+        if r:
+            view.insert(edit, 1, r)
         view.set_scratch(True)
 
 class RegexMatchCommand(sublime_plugin.TextCommand):
