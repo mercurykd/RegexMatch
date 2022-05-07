@@ -8,12 +8,16 @@ class StartRegexMatchCommand(sublime_plugin.TextCommand):
         view = self.view.window().new_file()
         view.set_name('Regex Match')
         view.assign_syntax('scope:source.regex')
-        view.insert(edit, 0, '~~')
-        sel = view.sel()
-        sel.clear()
-        sel.add(sublime.Region(1, 1))
         if r:
-            view.insert(edit, 1, r)
+            if re.match(r'(.)(.+)\1(.+)?', r):
+                view.insert(edit, 0, r)
+            else:
+                view.insert(edit, 0, '~' + r + '~')
+        else:
+            view.insert(edit, 0, '~~')
+            sel = view.sel()
+            sel.clear()
+            sel.add(sublime.Region(1, 1))
         view.set_scratch(True)
 
 class RegexMatchCommand(sublime_plugin.TextCommand):
