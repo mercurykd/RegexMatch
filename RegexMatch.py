@@ -52,7 +52,7 @@ class RegexMatchCommand(sublime_plugin.TextCommand):
                     self.getResult(rc, lines)
                     self.showResult(edit)
             else:
-                self.view.window().run_command('hide_panel', args={'panel':'output.' + name_panel})
+                self.view.window().destroy_output_panel(name_panel)
 
         except MyExc as e:
             icon = None
