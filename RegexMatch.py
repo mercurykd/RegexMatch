@@ -167,8 +167,8 @@ class RegexMatchCommand(sublime_plugin.TextCommand):
 
             k['explain'] = explain
 
+        ph = []
         for k in result:
-            ph = []
             if result[k]:
                 if k == 'lines':
                     self.view.add_regions(
@@ -218,8 +218,8 @@ class RegexMatchCommand(sublime_plugin.TextCommand):
                         annotations=result[k]['text'],
                         annotation_color='green',
                     )
-                if ph:
-                    self.showPhantoms(ps, ph)
+        if ph:
+            self.showPhantoms(ps, ph)
 
         if not result['lines']:
             self.view.add_regions(
@@ -235,11 +235,11 @@ class RegexMatchCommand(sublime_plugin.TextCommand):
         ps_panel = sublime.PhantomSet(view_panel, 'regex_match')
         contain = False
 
+        ph = []
         for k in ex:
             if k['region'].contains(p):
                 if k['explain'] is not None:
                     view_panel.insert(edit, 0 , k['explain'])
-                    ph = []
                     m  = []
                     for i in k['panel']['match']:
                         if i.a == i.b:
@@ -274,9 +274,10 @@ class RegexMatchCommand(sublime_plugin.TextCommand):
                             k['panel']['head'],
                             scope='region.purplish',
                         )
-                    if ph:
-                        self.showPhantoms(ps_panel, ph)
                 contain = True
+                
+        if ph:
+            self.showPhantoms(ps_panel, ph)
 
         if contain:
             self.view.window().run_command('show_panel', args={'panel':'output.' + self.name_panel})
