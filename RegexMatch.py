@@ -54,8 +54,8 @@ class RegexMatchCommand(sublime_plugin.TextCommand):
                 multiline, rc = self.getRegex()
                 lines = self.getTestLines(multiline)
                 if rc and lines:
-                    self.getResult(rc, lines)
-                    self.showResult(edit)
+                    r = self.getResult(rc, lines)
+                    self.showResult(edit, r)
                 else:
                     self.hidePanel()
             else:
@@ -77,8 +77,6 @@ class RegexMatchCommand(sublime_plugin.TextCommand):
             raise e
 
     def getResult(self, rc, lines):
-        global ex
-
         ex = []
         for region, testString in lines:
             count = 0
@@ -105,8 +103,9 @@ class RegexMatchCommand(sublime_plugin.TextCommand):
                         'head': [],
                     },
                 })
+        return ex
 
-    def showResult(self, edit):
+    def showResult(self, edit, ex):
         global ps, ps_panel
 
         result = {
