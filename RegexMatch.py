@@ -83,14 +83,28 @@ class RegexMatchCommand(sublime_plugin.TextCommand):
             lm    = []
             for m in rc.finditer(testString):
                 count += 1
+                gr = []
+                for i, g in enumerate(m.groups(), 1):
+                    gr.append({
+                        'name': i,
+                        'group': g,
+                        'start': m.start(i),
+                        'end': m.end(i),
+                    })
+                for g in m.groupdict():
+                    gr.append({
+                        'name': g,
+                        'group': m.groupdict()[g],
+                        'start': m.start(g),
+                        'end': m.end(g),
+                    })
                 lm.append({
                     'count': count,
                     'start': m.start(),
                     'end': m.end(),
                     'string': testString,
                     'match': m[0],
-                    'groups': m.groups(),
-                    'dict': m.groupdict(),
+                    'groups': gr,
                 })
             if count:
                 ex.append({
@@ -125,28 +139,26 @@ class RegexMatchCommand(sublime_plugin.TextCommand):
             for m in k['matches']:
                 result['matches'].append(sublime.Region(k['region'].a + m['start'], k['region'].a + m['end']))
                 explain += str(m['count']) + ':\n'
+
                 k['panel']['match'].append(sublime.Region(len(explain) + m['start'], len(explain) + m['end']))
+                for i, g in enumerate(m['groups'], 1):
+                    if g['group'] is not None:
+                        k['panel']['group'].append(sublime.Region(len(explain) + g['start'], len(explain) + g['end']))
+                        result['groups'].append(sublime.Region(k['region'].a + g['start'], k['region'].a + g['end']))
+
                 explain += m['string'] + '\n'
                 k['panel']['head'].append(sublime.Region(len(explain), len(explain) + 1))
-                explain += '0:\n'
+                explain += '0:'
+                if m['match']:
+                    explain += m['match'] + '\n'
+                else:
+                    explain += 'null\n'
 
                 for i, g in enumerate(m['groups'], 1):
-                    if g is not None:
-                        k['panel']['group'].append(sublime.Region(len(explain) + m['match'].find(g), len(explain) + m['match'].find(g) + len(g)))
-                        result['groups'].append(sublime.Region(k['region'].a + m['start'] + m['match'].find(g), k['region'].a + m['start'] + m['match'].find(g) + len(g)))
-                for g in m['dict']:
-                    if m['dict'][g] is not None:
-                        k['panel']['group'].append(sublime.Region(len(explain) + m['match'].find(m['dict'][g]), len(explain) + m['match'].find(m['dict'][g]) + len(m['dict'][g])))
-                        result['groups'].append(sublime.Region(k['region'].a + m['start'] + m['match'].find(m['dict'][g]), k['region'].a + m['start'] + m['match'].find(m['dict'][g]) + len(m['dict'][g])))
-                explain += m['match'] + '\n'
-                for i, g in enumerate(m['groups'], 1):
-                    if g is not None:
-                        k['panel']['head'].append(sublime.Region(len(explain), len(explain) + len(str(i))))
-                        explain += str(i) + ':' + g + '\n'
-                for g in m['dict']:
-                    if m['dict'][g] is not None:
-                        k['panel']['head'].append(sublime.Region(len(explain), len(explain) + len(str(g))))
-                        explain += g + ':' + m['dict'][g] + '\n'
+                    if g['group'] is not None:
+                        k['panel']['head'].append(sublime.Region(len(explain), len(explain) + len(str(g['name']))))
+                        explain += str(g['name']) + ':' + g['group'] + '\n'
+
                 explain += '\n'
 
             k['explain'] = explain
