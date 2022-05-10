@@ -4,7 +4,6 @@ import re
 
 ps         = None #PhantomSet
 ps_panel   = None #PhantomSet
-name_panel = 'regex_match'
 
 class MyExc(Exception):
     pass
@@ -28,6 +27,7 @@ class StartRegexMatchCommand(sublime_plugin.TextCommand):
         view.set_scratch(True)
 
 class RegexMatchCommand(sublime_plugin.TextCommand):
+    name_panel = 'regex_match'
     scopes = [
         'reg_match:error_reg',
         'reg_match:green',
@@ -36,8 +36,12 @@ class RegexMatchCommand(sublime_plugin.TextCommand):
         'reg_match:annotations'
     ]
 
+    def hidePanel(self):
+        if self.view.window().active_panel() == 'output.' + self.name_panel:
+            self.view.window().run_command('hide_panel')
+
     def run(self, edit):
-        global name_panel
+        global ps
 
         multiline = None
         rc        = None
@@ -45,15 +49,17 @@ class RegexMatchCommand(sublime_plugin.TextCommand):
 
         try:
             if self.view.syntax() and self.view.syntax().scope == 'source.regex':
+                ps = sublime.PhantomSet(self.view, 'regex_match')
                 self.clearRegions()
                 multiline, rc = self.getRegex()
                 lines = self.getTestLines(multiline)
                 if rc and lines:
                     self.getResult(rc, lines)
                     self.showResult(edit)
+                else:
+                    self.hidePanel()
             else:
-                if self.view.window().active_panel() == 'output.' + name_panel:
-                    self.view.window().run_command('hide_panel')
+                self.hidePanel()
 
         except MyExc as e:
             icon = None
@@ -101,7 +107,7 @@ class RegexMatchCommand(sublime_plugin.TextCommand):
                 })
 
     def showResult(self, edit):
-        global name_panel, ps, ps_panel
+        global ps, ps_panel
 
         result = {
             'lines': [],
@@ -146,7 +152,6 @@ class RegexMatchCommand(sublime_plugin.TextCommand):
 
             k['explain'] = explain
 
-        ps = sublime.PhantomSet(self.view, 'regex_match')
         for k in result:
             ph = []
             if result[k]:
@@ -211,7 +216,7 @@ class RegexMatchCommand(sublime_plugin.TextCommand):
 
         # output panel
         p = self.view.sel()[0].a
-        view_panel = self.view.window().create_output_panel(name_panel, True)
+        view_panel = self.view.window().create_output_panel(self.name_panel, True)
         ps_panel = sublime.PhantomSet(view_panel, 'regex_match')
         contain = False
 
@@ -259,9 +264,9 @@ class RegexMatchCommand(sublime_plugin.TextCommand):
                 contain = True
 
         if contain:
-            self.view.window().run_command('show_panel', args={'panel':'output.' + name_panel})
+            self.view.window().run_command('show_panel', args={'panel':'output.' + self.name_panel})
         else:
-            self.view.window().run_command('hide_panel')
+            self.hidePanel()
 
     def showPhantoms(self, ps, phantoms):
         ph = []
