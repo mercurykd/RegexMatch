@@ -157,7 +157,11 @@ class RegexMatchCommand(sublime_plugin.TextCommand):
                 for i, g in enumerate(m['groups'], 1):
                     if g['group'] is not None:
                         k['panel']['head'].append(sublime.Region(len(explain), len(explain) + len(str(g['name']))))
-                        explain += str(g['name']) + ':' + g['group'] + '\n'
+                        explain += str(g['name']) + ':'
+                        if g['group']:
+                            explain += g['group'] + '\n'
+                        else:
+                            explain += 'null\n'
 
                 explain += '\n'
 
