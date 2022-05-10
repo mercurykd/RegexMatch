@@ -114,7 +114,8 @@ class RegexMatchCommand(sublime_plugin.TextCommand):
                     'panel': {
                         'match': [],
                         'group': [],
-                        'head': [],
+                        'headmatch': [],
+                        'headgroup': [],
                     },
                 })
         return ex
@@ -147,7 +148,7 @@ class RegexMatchCommand(sublime_plugin.TextCommand):
                         result['groups'].append(sublime.Region(k['region'].a + g['start'], k['region'].a + g['end']))
 
                 explain += m['string'] + '\n'
-                k['panel']['head'].append(sublime.Region(len(explain), len(explain) + 1))
+                k['panel']['headmatch'].append(sublime.Region(len(explain), len(explain) + 1))
                 explain += '0:'
                 if m['match']:
                     explain += m['match'] + '\n'
@@ -156,7 +157,7 @@ class RegexMatchCommand(sublime_plugin.TextCommand):
 
                 for i, g in enumerate(m['groups'], 1):
                     if g['group'] is not None:
-                        k['panel']['head'].append(sublime.Region(len(explain), len(explain) + len(str(g['name']))))
+                        k['panel']['headgroup'].append(sublime.Region(len(explain), len(explain) + len(str(g['name']))))
                         explain += str(g['name']) + ':'
                         if g['group']:
                             explain += g['group'] + '\n'
@@ -268,14 +269,20 @@ class RegexMatchCommand(sublime_plugin.TextCommand):
                                 m,
                                 scope='region.bluish',
                             )
-                    if k['panel']['head']:
+                    if k['panel']['headmatch']:
                         view_panel.add_regions(
                             self.scopes[4],
-                            k['panel']['head'],
-                            scope='region.purplish',
+                            k['panel']['headmatch'],
+                            scope='region.orangish',
+                        )
+                    if k['panel']['headgroup']:
+                        view_panel.add_regions(
+                            self.scopes[0],
+                            k['panel']['headgroup'],
+                            scope='region.bluish',
                         )
                 contain = True
-                
+
         if ph:
             self.showPhantoms(ps_panel, ph)
 
