@@ -353,10 +353,6 @@ class RegexMatchCommand(sublime_plugin.TextCommand):
 
 
 class RegexMatchViewEventListener(sublime_plugin.ViewEventListener):
-    def on_load_async(self):
-        self.view.run_command('regex_match')
-    def on_reload_async(self):
-        self.view.run_command('regex_match')
     def on_activated_async(self):
         self.view.run_command('regex_match')
     def on_selection_modified(self):
