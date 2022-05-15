@@ -1,9 +1,8 @@
 import sublime
 import sublime_plugin
 import re
-
-ps         = None #PhantomSet
-ps_panel   = None #PhantomSet
+import colorsys
+from os.path import basename, splitext
 
 class MyExc(Exception):
     pass
@@ -35,21 +34,54 @@ class RegexMatchCommand(sublime_plugin.TextCommand):
         'reg_match:groups',
         'reg_match:annotations'
     ]
+    patchColorCheck = None # check color sheme patch
+    colors          = []
+    ps              = None #PhantomSet
+    ps_panel        = None #PhantomSet
 
     def hidePanel(self):
         if self.view.window().active_panel() == 'output.' + self.name_panel:
             self.view.window().run_command('hide_panel')
 
-    def run(self, edit):
-        global ps
+    def patchColorScheme(self):
+        if self.__class__.patchColorCheck is None:
+            n   = 100
+            hsv = [(x/n, 1, 0.4) for x in range(n)]
+            for i, rgb in enumerate(hsv):
+                rgb = map(lambda x: int(x * 255), colorsys.hsv_to_rgb(*rgb))
+                self.__class__.colors.append({
+                    'name':'Regex Match Color ' + str(i),
+                    'scope':'regexmatch.color' + str(i),
+                    'background':'#%02x%02x%02x' % tuple(rgb),
+                })
+            patchColor = basename(splitext(self.view.settings().to_dict()['color_scheme'])[0]) + '.sublime-color-scheme'
+            j = sublime.load_settings(patchColor)
+            rules = j.get('rules')
+            if rules is None:
+                j.set('rules', self.__class__.colors)
+            else:
+                for c in self.__class__.colors:
+                    exist = False
+                    for r in rules:
+                        if c['name'] == r['name']:
+                            r['background'] = c['background']
+                            r['scope']      = c['scope']
+                            exist           = True
+                    if exist == False:
+                        rules.append(c)
+                j.set('rules', rules)
+            sublime.save_settings(patchColor)
+            self.__class__.patchColorCheck = True
 
+    def run(self, edit):
         multiline = None
         rc        = None
         lines     = None
 
         try:
             if self.view.syntax() and self.view.syntax().scope == 'source.regex':
-                ps = sublime.PhantomSet(self.view, 'regex_match')
+                self.patchColorScheme()
+                self.__class__.ps = sublime.PhantomSet(self.view, 'regex_match')
                 self.clearRegions()
                 multiline, rc = self.getRegex()
                 lines = self.getTestLines(multiline)
@@ -113,20 +145,18 @@ class RegexMatchCommand(sublime_plugin.TextCommand):
                     'explain': None,
                     'panel': {
                         'match': [],
-                        'group': [],
+                        'group': {},
                         'headmatch': [],
-                        'headgroup': [],
+                        'headgroup': {},
                     },
                 })
         return ex
 
     def showResult(self, edit, ex):
-        global ps, ps_panel
-
         result = {
             'lines': [],
             'matches': [],
-            'groups': [],
+            'groups': {},
             'annotations' : {
                 'regions' : [],
                 'text' : [],
@@ -142,10 +172,20 @@ class RegexMatchCommand(sublime_plugin.TextCommand):
                 explain += str(m['count']) + ':\n'
 
                 k['panel']['match'].append(sublime.Region(len(explain) + m['start'], len(explain) + m['end']))
-                for i, g in enumerate(m['groups'], 1):
+                for i, g in enumerate(m['groups']):
                     if g['group'] is not None:
-                        k['panel']['group'].append(sublime.Region(len(explain) + g['start'], len(explain) + g['end']))
-                        result['groups'].append(sublime.Region(k['region'].a + g['start'], k['region'].a + g['end']))
+                        k['panel']['group'].setdefault(g['name'], {
+                            'color': self.__class__.colors[i * len(self.__class__.colors) // len(m['groups'])]['background'],
+                            'scope': self.__class__.colors[i * len(self.__class__.colors) // len(m['groups'])]['scope'],
+                            'regions': [],
+                        })
+                        k['panel']['group'][g['name']]['regions'].append(sublime.Region(len(explain) + g['start'], len(explain) + g['end']))
+                        result['groups'].setdefault(g['name'], {
+                            'color': self.__class__.colors[i * len(self.__class__.colors) // len(m['groups'])]['background'],
+                            'scope': self.__class__.colors[i * len(self.__class__.colors) // len(m['groups'])]['scope'],
+                            'regions': [],
+                        })
+                        result['groups'][g['name']]['regions'].append(sublime.Region(k['region'].a + g['start'], k['region'].a + g['end']))
 
                 explain += m['string'] + '\n'
                 k['panel']['headmatch'].append(sublime.Region(len(explain), len(explain) + 1))
@@ -155,9 +195,14 @@ class RegexMatchCommand(sublime_plugin.TextCommand):
                 else:
                     explain += 'null\n'
 
-                for i, g in enumerate(m['groups'], 1):
+                for i, g in enumerate(m['groups']):
                     if g['group'] is not None:
-                        k['panel']['headgroup'].append(sublime.Region(len(explain), len(explain) + len(str(g['name']))))
+                        k['panel']['headgroup'].setdefault(g['name'], {
+                            'color': self.__class__.colors[i * len(self.__class__.colors) // len(m['groups'])]['background'],
+                            'scope': self.__class__.colors[i * len(self.__class__.colors) // len(m['groups'])]['scope'],
+                            'regions': [],
+                        })
+                        k['panel']['headgroup'][g['name']]['regions'].append(sublime.Region(len(explain), len(explain) + len(str(g['name']))))
                         explain += str(g['name']) + ':'
                         if g['group']:
                             explain += g['group'] + '\n'
@@ -197,21 +242,28 @@ class RegexMatchCommand(sublime_plugin.TextCommand):
                         )
 
                 if k == 'groups':
-                    m  = []
-
+                    m  = {}
                     for i in result[k]:
-                        if i.a == i.b:
-                            ph.append({'color':'5897fb', 'region': i})
-                        else:
-                            m.append(i)
+                        for r in result[k][i]['regions']:
+                            if r.a == r.b:
+                                ph.append({'color':result[k][i]['color'].replace('#', ''), 'region': r})
+                            else:
+                                m.setdefault(i, {
+                                    'scope' : result[k][i]['scope'],
+                                    'regions' : [],
+                                })
+                                m[i]['regions'].append(r)
 
                     if m:
-                        self.view.add_regions(
-                            self.scopes[3],
-                            m,
-                            scope='region.bluish',
-                            flags=sublime.HIDE_ON_MINIMAP|sublime.DRAW_NO_FILL,
-                        )
+                        for i, r in enumerate(m):
+                            name = self.scopes[3] + str(i)
+                            self.scopes.append(name)
+                            self.view.add_regions(
+                                name,
+                                m[r]['regions'],
+                                scope=m[r]['scope'],
+                                flags=sublime.HIDE_ON_MINIMAP,
+                            )
                 if k == 'annotations':
                     self.view.add_regions(
                         self.scopes[4],
@@ -220,7 +272,7 @@ class RegexMatchCommand(sublime_plugin.TextCommand):
                         annotation_color='green',
                     )
         if ph:
-            self.showPhantoms(ps, ph)
+            self.showPhantoms(self.__class__.ps, ph)
 
         if not result['lines']:
             self.view.add_regions(
@@ -233,7 +285,7 @@ class RegexMatchCommand(sublime_plugin.TextCommand):
         # output panel
         p = self.view.sel()[0].a
         view_panel = self.view.window().create_output_panel(self.name_panel, True)
-        ps_panel = sublime.PhantomSet(view_panel, 'regex_match')
+        self.__class__.ps_panel = sublime.PhantomSet(view_panel, 'regex_match')
         contain = False
 
         ph = []
@@ -255,20 +307,27 @@ class RegexMatchCommand(sublime_plugin.TextCommand):
                             scope='region.orangish',
                         )
                     if k['panel']['group']:
-                        m  = []
-
+                        m  = {}
                         for i in k['panel']['group']:
-                            if i.a == i.b:
-                                ph.append({'color': '5897fb', 'region': i})
-                            else:
-                                m.append(i)
+                            for r in k['panel']['group'][i]['regions']:
+                                if r.a == r.b:
+                                    ph.append({'color': k['panel']['group'][i]['color'].replace('#', ''), 'region': r})
+                                else:
+                                    m.setdefault(i, {
+                                        'scope' : k['panel']['group'][i]['scope'],
+                                        'regions' : [],
+                                    })
+                                    m[i]['regions'].append(r)
 
                         if m:
-                            view_panel.add_regions(
-                                self.scopes[3],
-                                m,
-                                scope='region.bluish',
-                            )
+                            for i, r in enumerate(m):
+                                name = self.scopes[3] + str(i)
+                                self.scopes.append(name)
+                                view_panel.add_regions(
+                                    name,
+                                    m[r]['regions'],
+                                    scope=m[r]['scope'],
+                                )
                     if k['panel']['headmatch']:
                         view_panel.add_regions(
                             self.scopes[4],
@@ -276,15 +335,18 @@ class RegexMatchCommand(sublime_plugin.TextCommand):
                             scope='region.orangish',
                         )
                     if k['panel']['headgroup']:
-                        view_panel.add_regions(
-                            self.scopes[0],
-                            k['panel']['headgroup'],
-                            scope='region.bluish',
-                        )
+                        for i, r in enumerate(k['panel']['headgroup']):
+                            name = self.scopes[3] + 'head' + str(i)
+                            self.scopes.append(name)
+                            view_panel.add_regions(
+                                name,
+                                k['panel']['headgroup'][r]['regions'],
+                                scope=k['panel']['headgroup'][r]['scope'],
+                            )
                 contain = True
 
         if ph:
-            self.showPhantoms(ps_panel, ph)
+            self.showPhantoms(self.__class__.ps_panel, ph)
 
         if contain:
             self.view.window().run_command('show_panel', args={'panel':'output.' + self.name_panel})
