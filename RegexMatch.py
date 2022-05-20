@@ -79,10 +79,10 @@ class RegexMatchCommand(sublime_plugin.TextCommand):
         lines     = None
 
         try:
+            self.clearRegions()
             if self.view.syntax() and self.view.syntax().scope == 'source.regex':
                 self.patchColorScheme()
                 self.__class__.ps = sublime.PhantomSet(self.view, 'regex_match')
-                self.clearRegions()
                 multiline, rc = self.getRegex()
                 lines = self.getTestLines(multiline)
                 if rc and lines:
